@@ -5,7 +5,10 @@ const TOKEN = 'CjlAiQiIFxcVN3h582dzJexrgg4xUvFZpjEfyOZSXNZtrkHsS5rDhzwAmhX0XmpTw
 const PAPAGO_URL = 'https://openapi.naver.com/v1/papago/n2mt'
 const PAPAGO_ID = 'M7wy9fJ4QZiQ6EwEqRhR'
 const PAPAGO_SECRET = 'EFpzluUTVm'
+const MUSIXMATCH_KEY = '72339be60f896e74d71b76a69e6211e2'
+const MUSIXMATCH_URL = 'https://api.musixmatch.com/ws/1.1/matcher.lyrics.get?format=json&callback=callback&q_artist=Blinding Lights&q_track=The Weeknd&apikey=72339be60f896e74d71b76a69e6211e2'
 const fs = require('fs');
+const utf8 = require('utf8');
 const path = require('path');
 const HTTPS = require('https');
 const domain = "www.shazamkazam.ml"
@@ -28,18 +31,123 @@ app.post('/hook', function (req, res) {
     console.log('[request source] ', eventObj.source);
     console.log('[request message]', eventObj.message);
 
-    if(eventObj.message.text=="영어"){
-        target_language = 'en'
-    }else if(eventObj.message.text=="일본어"){
-        target_language = 'ja'
-    }else if(eventObj.message.text=="프랑스어"){
-        target_language = 'fr'
+    if(eventObj.message.text=="help" || eventObj.message.text=="도움말"){
+        help(eventObj.replyToken);
     }else{
-        trans(eventObj.replyToken, eventObj.message.text);
+        get_lyrics(eventObj.replyToken, eventObj.message.text);
+        //trans(eventObj.replyToken, eventObj.message.text);
     }
 
     res.sendStatus(200);
 });
+
+function help(replyToken){
+    request.post(
+        {
+            url: TARGET_URL,
+            headers: {
+                'Authorization': `Bearer ${TOKEN}`
+            },
+            json: {
+                "replyToken":replyToken,
+                "messages":[
+                    {
+                        "type":"text",
+                        "text":"\"가수, 노래명\"으로 입력해주세요.(영어, 일본어, 프랑스어 등 가능)"
+                    }
+                ]
+            }
+        },(error, response, body) => {
+            console.log(body)
+        });
+}
+
+function get_lyrics(replyToken, user_message){
+    let artist, song, send_text;
+    try{
+        const words = user_message.split(",");
+        artist = words[0].trim();
+        song = words[1].trim();
+        song = utf8.decode(song);
+        console.log(words)
+        console.log(artist, song)
+    }
+    catch{
+        request.post(
+            {
+                url: TARGET_URL,
+                headers: {
+                    'Authorization': `Bearer ${TOKEN}`
+                },
+                json: {
+                    "replyToken":replyToken,
+                    "messages":[
+                        {
+                            "type":"text",
+                            "text":"\"가수, 노래명\"으로 입력해주세요."
+                        }
+                    ]
+                }
+            },(error, response, body) => {
+                console.log(body)
+            });
+            return;
+    }
+    request.get(
+        {
+            url: MUSIXMATCH_URL,
+            qs:{
+                format: 'json',
+                q_artist: song,
+                q_track: artist,
+                apikey: MUSIXMATCH_KEY
+            },
+            json: true
+        },(error, response, body) => {
+            try{
+            if(!error && response.statusCode == 200){
+                if(body.message.header.status_code == 200) {
+                    console.log(body.message.body.lyrics.lyrics_body);
+                    send_text = body.message.body.lyrics.lyrics_body;
+                }
+                else{
+                    console.log(body.message.header.status_code);
+                    if(body.message.header.status_code == 404)
+                        console.log("Wrong input type")
+                        console.log(body.message)
+                    send_text = "잘못된 가수나 노래명입니다.\n\"가수, 노래명\"으로 입력해주세요."
+
+                }
+            }
+            else{
+                console.log(response.statusCode)
+                send_text = "서버에 오류가 발생했습니다. 다음에 다시 시도해주세요."
+            }
+            request.post(
+                {
+                    url: TARGET_URL,
+                    headers: {
+                        'Authorization': `Bearer ${TOKEN}`
+                    },
+                    json: {
+                        "replyToken":replyToken,
+                        "messages":[
+                            {
+                                "type":"text",
+                                "text": send_text
+                            }
+                        ]
+                    }
+                },(error, response, body) => {
+                    console.log(body)
+                }
+            );
+            }
+            catch(e){
+                console.log(e)
+            }
+        });
+}
 
 function trans(replyToken, message) {
     request.post(
@@ -53,6 +161,7 @@ function trans(replyToken, message) {
             body: 'source=ko&target=' + target_language + '&text=' + message,
             json:true
         },(error, response, body) => {
+            console.log(body);
             if(!error && response.statusCode == 200) {
                 console.log(body.message);
                 var transMessage = body.message.result.translatedText;
