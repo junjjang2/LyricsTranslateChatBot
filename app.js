@@ -15,8 +15,29 @@ const domain = "www.shazamkazam.ml"
 const sslport = 23023;
 const bodyParser = require('body-parser');
 var app = express();
+var PythonShell = require('python-shell');
 
 var target_language = 'en'
+
+var pyshell_options = {
+
+    mode: 'text',
+  
+    pythonPath: '',
+  
+    pythonOptions: ['-u'],
+  
+    scriptPath: '',
+  
+    args: ['value1', 'value2', 'value3']
+  
+  };
+  
+//PythonShell.run('test.py', options, function(err, results){
+///    if(err)
+//        throw err;
+//    console.log('results: %s', results);
+//});
 
 app.use(bodyParser.json());
 app.post('/hook', function (req, res) {
