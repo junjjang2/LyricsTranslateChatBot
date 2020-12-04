@@ -6,7 +6,7 @@ const PAPAGO_URL = 'https://openapi.naver.com/v1/papago/n2mt'
 const PAPAGO_ID = 'M7wy9fJ4QZiQ6EwEqRhR'
 const PAPAGO_SECRET = 'EFpzluUTVm'
 const MUSIXMATCH_KEY = '72339be60f896e74d71b76a69e6211e2'
-const MUSIXMATCH_URL = 'https://api.musixmatch.com/ws/1.1/matcher.lyrics.get?format=json&callback=callback&q_artist=Blinding Lights&q_track=The Weeknd&apikey=72339be60f896e74d71b76a69e6211e2'
+const MUSIXMATCH_URL = 'https://api.musixmatch.com/ws/1.1/matcher.lyrics.get?'
 const fs = require('fs');
 const utf8 = require('utf8');
 const path = require('path');
@@ -15,29 +15,8 @@ const domain = "www.shazamkazam.ml"
 const sslport = 23023;
 const bodyParser = require('body-parser');
 var app = express();
-var PythonShell = require('python-shell');
 
 var target_language = 'en'
-
-var pyshell_options = {
-
-    mode: 'text',
-  
-    pythonPath: '',
-  
-    pythonOptions: ['-u'],
-  
-    scriptPath: '',
-  
-    args: ['value1', 'value2', 'value3']
-  
-  };
-  
-//PythonShell.run('test.py', options, function(err, results){
-///    if(err)
-//        throw err;
-//    console.log('results: %s', results);
-//});
 
 app.use(bodyParser.json());
 app.post('/hook', function (req, res) {
