@@ -2,7 +2,8 @@ var express = require('express');
 const request = require('request');
 const TARGET_URL = 'https://api.line.me/v2/bot/message/reply'
 const TOKEN = 'CjlAiQiIFxcVN3h582dzJexrgg4xUvFZpjEfyOZSXNZtrkHsS5rDhzwAmhX0XmpTwaG6xMK7Y1u+0xKbUY/ZR7NW1CJXAxLM7Mx0eYX56iCYz+w9WyWCR83saMR+SeElwP/HWOpbluNn3LztSD0RqAdB04t89/1O/w1cDnyilFU='
-const PAPAGO_URL = 'https://openapi.naver.com/v1/papago/n2mt'
+const PAPAGO_TRANS_URL = 'https://openapi.naver.com/v1/papago/n2mt'
+const PAPAGO_DETLENG_URL = 'https://openapi.naver.com/v1/papago/detectLangs'
 const PAPAGO_ID = 'M7wy9fJ4QZiQ6EwEqRhR'
 const PAPAGO_SECRET = 'EFpzluUTVm'
 const MUSIXMATCH_KEY = '72339be60f896e74d71b76a69e6211e2'
@@ -15,6 +16,7 @@ const domain = "www.shazamkazam.ml"
 const sslport = 23023;
 const bodyParser = require('body-parser');
 var app = express();
+var py = require('./python_shell.js')
 
 var target_language = 'en'
 
@@ -105,10 +107,11 @@ function get_lyrics(replyToken, user_message){
             json: true
         },(error, response, body) => {
             try{
+            target_language = detect(body.message.body.lyrics.lyrics_body)
             if(!error && response.statusCode == 200){
                 if(body.message.header.status_code == 200) {
                     console.log(body.message.body.lyrics.lyrics_body);
-                    send_text = body.message.body.lyrics.lyrics_body;
+                    send_text = py.transliteration(target_language, body.message.body.lyrics.lyrics_body);
                 }
                 else{
                     console.log(body.message.header.status_code);
@@ -152,7 +155,7 @@ function get_lyrics(replyToken, user_message){
 function trans(replyToken, message) {
     request.post(
         {
-            url: PAPAGO_URL,
+            url: PAPAGO_TRANS_URL,
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'X-Naver-Client-Id': `${PAPAGO_ID}`,
@@ -186,6 +189,29 @@ function trans(replyToken, message) {
             }
         });
 
+}
+
+function detect(replyToken, message) {
+    request.post(
+        {
+            url: PAPAGO_DETLANG_URL,
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Naver-Client-Id': `${PAPAGO_ID}`,
+                'X-Naver-Client-Secret': `${PAPAGO_SECRET}`
+            },
+            form: {'query': query}
+        },(error, response, body) => {
+            console.log(body);
+            if(!error && response.statusCode == 200) {
+                console.log(body);
+                target_language = body.langCode;
+            }
+            else{
+                console.log('error: ' + response.statusCode);
+            }
+        }
+    );
 }
 
 try {
